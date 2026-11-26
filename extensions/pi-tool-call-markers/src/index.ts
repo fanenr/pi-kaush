@@ -1687,10 +1687,25 @@ function installGroupingPatch(
         // container's mouse-layout cache. Publish the drawn accounting so
         // click-to-expand (Pi routes by per-child line heights) keeps landing
         // on the row that actually owns the line, including grouped members.
-        (this as { mouseLayout?: unknown }).mouseLayout = {
-          width,
-          children: drawn.heights,
-        };
+        if ("childLines" in this) {
+          // Pi 1.6+ shares the rendered parts with mouse routing.
+          let offset = 0;
+          (this as { childLines?: unknown }).childLines = {
+            width,
+            children: drawn.heights.map(({ component }) => component),
+            parts: drawn.heights.map(({ height }) => {
+              const part = drawn.lines.slice(offset, offset + height);
+              offset += height;
+              return part;
+            }),
+            lines: drawn.lines,
+          };
+        } else {
+          (this as { mouseLayout?: unknown }).mouseLayout = {
+            width,
+            children: drawn.heights,
+          };
+        }
         return drawn.lines;
       } catch {
         return state.originalRender.call(this, width);
